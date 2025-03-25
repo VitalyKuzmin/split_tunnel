@@ -1,53 +1,65 @@
-# Split Tunneling Setup for Amnezia VPN on DigitalOcean
+# SplitVPN Docker
 
-This guide helps you set up server-side split tunneling for Amnezia VPN on a DigitalOcean server.
-It allows you to dynamically route only specific IPs through VPN for all clients, and toggle the routing on/off.
+Проект для включения/отключения серверного split tunneling через Docker. Подходит для Amnezia VPN, WireGuard или OpenVPN, развернутого на сервере (например, DigitalOcean).
 
-## 📦 Files Needed
+## 🔧 Что делает проект
 
-- `toggle_split_tunneling.sh`: Script to enable/disable split tunneling
-- `splitvpn-toggle.service`: systemd unit to toggle routing
-- `ip-list.json`: JSON file containing the list of IPs to be routed through VPN
+- Читает IP-адреса из `ip-list.json`
+- Добавляет маршруты к ним через VPN-интерфейс `amn0`
+- Использует отдельную таблицу маршрутизации `splitvpn`
+- Позволяет переключать split tunneling через запуск `docker-compose up`
 
-## 🚀 Setup Instructions
+## 🗂️ Структура проекта
 
-### 1. Upload the files to your server
-```bash
-scp toggle_split_tunneling.sh root@<SERVER_IP>:/root/
-scp splitvpn-toggle.service root@<SERVER_IP>:/etc/systemd/system/
-scp ip-list.json root@<SERVER_IP>:/root/
+```
+.
+├── Dockerfile
+├── docker-compose.yml
+├── ip-list.json            # Файл со списком IP, которые должны идти через VPN
+└── toggle_split_tunneling.sh
 ```
 
-### 2. Make the script executable
-```bash
-chmod +x /root/toggle_split_tunneling.sh
+## 📦 Установка
+
+1. Склонируйте проект или создайте файлы вручную
+2. Замените содержимое `ip-list.json` своим списком IP-адресов
+
+Пример `ip-list.json`:
+```json
+{
+  "google": ["8.8.8.8", "8.8.4.4"],
+  "cloudflare": ["1.1.1.1"]
+}
 ```
 
-### 3. Install `jq` (if not installed)
+## 🚀 Запуск
+
 ```bash
-apt update && apt install -y jq
+docker compose up --build
 ```
 
-### 4. Reload systemd and enable the service
-```bash
-systemctl daemon-reexec
-systemctl daemon-reload
-systemctl enable splitvpn-toggle.service
-```
+Скрипт автоматически:
 
-### 5. Toggle split tunneling manually
-```bash
-systemctl start splitvpn-toggle.service   # toggles on/off based on current state
-```
+- включит маршруты при первом запуске
+- отключит маршруты при повторном запуске (если они уже были активны)
 
-## 🧠 How it works
+## 📎 Важно
 
-- Adds custom routes to specific IPs using `ip route add`
-- Uses custom routing table `splitvpn` and `ip rule` for client subnet `172.29.172.0/24`
-- Tracks state using `/root/.splitvpn_enabled` file
+Контейнер должен запускаться с:
+- `--network=host` — чтобы видеть и управлять маршрутами хоста
+- `--cap-add=NET_ADMIN` — чтобы использовать iproute2 внутри
 
-## 🔁 Optional
-- To auto-toggle at boot, keep the service enabled with `systemctl enable`
+## 💡 Расширения
+
+Можно добавить:
+
+- REST API на Flask/FastAPI
+- поддержку аргументов запуска (MODE=on|off)
+- автообновление маршрутов по расписанию
 
 ---
-**Note:** Update the script if your VPN interface or client subnet differs from `amn0` / `172.29.172.0/24`.
+
+**Интерфейс по умолчанию:** `amn0`  
+**Подсеть клиентов VPN:** `172.29.172.0/24`
+
+Измените эти значения в `toggle_split_tunneling.sh`, если у вас они другие.
