@@ -2,11 +2,11 @@
 # Скрипт включения/отключения split tunneling через IP-маршруты
 set -e
 
-JSON_FILE='/root/ip-list.json'
+JSON_FILE='/root/split_tunnel/ip-list.json'
 VPN_INTERFACE='amn0'
 VPN_TABLE='splitvpn'
 VPN_SUBNET='172.29.172.0/24'
-STATE_FILE='/root/.splitvpn_enabled'
+STATE_FILE='/root/split_tunnel/.splitvpn_enabled'
 
 if [ -f "$STATE_FILE" ]; then
   echo '🔻 Отключение split tunneling...'
