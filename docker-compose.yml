@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  splitvpn:
+    build: .
+    container_name: splitvpn
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - /etc/iproute2:/etc/iproute2:rw
+    restart: "no"
